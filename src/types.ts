@@ -1,3 +1,3 @@
-type GenerateResp = { created: number; tokens: string[] };
-type TokenStatus = { status: 'available' | 'redeemed' | 'expired' };
-type RedeemStatus = {result: 'ok' | 'redeemed' | 'expired'};
+export type GenerateResp = { created: string; tokens: string[] };
+export enum TokenStatus {'Available', 'Redeemed', 'Expired'};
+export const TOKENSET = 'TOKENSET'

@@ -1,46 +1,20 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Framework: [Nest](https://github.com/nestjs/nest) TypeScript 
 
-## Installation
-
-```bash
-$ npm install
-```
+Service that powers a token generator system using NodeJs, Redis and
+Docker.
 
 ## Running the app
 
 ```bash
+# install
+$ npm install
 # development
 $ npm run start
-
 # watch mode
 $ npm run start:dev
-
 # production mode
 $ npm run start:prod
 ```
@@ -50,24 +24,68 @@ $ npm run start:prod
 ```bash
 # unit tests
 $ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
 # test coverage
 $ npm run test:cov
 ```
+## Assumption
+Tokens don't have a pool or user mapping
 
-## Support
+## Estimates
+```
+Assumptions => Read heavy system, 10:1 read/write
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Traffic estimates
+Let's say we get write load of 100 tokens/sec
+1  day => 24*60*60*10 => 8.6M tokens
+10 days =>  86M tokens generated
 
-## Stay in touch
+# Stoarge Estimates
+We need to maintain 8.6M tokens 
+Let's say each token takes 1kb => we need (8.6*10^6)kb => ~8.6GB
+*** so it's important to keep our token size minimal ***
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+#Bandwidth Estimates
+For token generation => 100 req/sec (each req being 1kb) => 100kb/sec 
+For token check and redemption => 10 * 100 req/sec (each being 1kb atleaset, token size) => 1Mb/sec 
+```
+## APIs
+```
+generate(count) => will assume that either it's an internal api to be called by our system 
+ or exposed via api_dev_key, so no check for DDoS/xhr attacks 
+check(token) => high availability
+redeem(token) => high consistency
+```
 
-## License
+## DB
+```
+What should be the length of token?
+If we assume a base64 encoding to generate tokens, 
+a 6letter long token would result in 64^6 possible values => 68B possible tokens
 
-Nest is [MIT licensed](LICENSE).
+However we will use NanoId, which has 21symbols only => 21^6 =>  85M possible tokens 
+This closely covers the range of 86M tokens generated per 10 days
+*** So for 10days we can avoid token collisions in given set ***
+ 
+Token DB size => 
+Let's say we need 1 byte to store 1 NanoId char
+ 6(1 byte) * 85M (# of tokens) => 510 Mb
+```
+ 
+## Points of Failure
+```
+Token generation system, can be solved with replicas
+Single point of cache (scale to distributed cache)
+Keep generate and check/redeem in seperate micro services as they will have different b/w scaling requirements (or lambdas)
+cleanup crons
+alert/monitoring checks
+logging
+```
+
+[Nano ID Estimations](https://zelark.github.io/nano-id-cc/) 
+
+![](nanoid.png)
+
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/79b38a80c0da2610edf4?action=collection%2Fimport)
+
+## Tolkien
+![Tolkien](https://upload.wikimedia.org/wikipedia/en/7/7c/Token_Black2.webp)
