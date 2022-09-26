@@ -11,9 +11,6 @@ export class AppService {
   constructor(private readonly redisService: RedisService) {
     this.redis = this.redisService.getClient();
   }
-  async set() {
-    return await this.redis.set('key', 'value', 'EX', 1000);
-  }
 
   health(): string {
     return 'Ok!';
@@ -68,7 +65,7 @@ export class AppService {
       throw err;
     }
     finally {
-      await this.redis.unwatch(token)
+      await this.redis.unwatch()
     }
   }
 }

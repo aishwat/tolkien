@@ -18,7 +18,6 @@ export class AppController {
 
   @Get()
   async health(): Promise<string> {
-    this.appService.set();
     return this.appService.health();
   }
 
