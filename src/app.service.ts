@@ -52,14 +52,23 @@ export class AppService {
   }
 
   async redeem(token): Promise<string> {
-    const status = await this.redis.get(token);
-    if (status === TokenStatus[TokenStatus.Available]) {
-      await this.redis.set(token, TokenStatus[TokenStatus.Redeemed], 'KEEPTTL');
-      return 'OK';
+    try {
+      await this.redis.watch(token)
+      const status = await this.redis.get(token);
+      if (status === TokenStatus[TokenStatus.Available]) {
+        // todo : Optimistic locking via watch, exec // edge case when 2 requests are racing to redeem same token
+        // check : does it matter if we re-redeem a redeemed token?
+        await this.redis.multi().set(token, TokenStatus[TokenStatus.Redeemed], 'KEEPTTL').exec();
+        return 'OK';
+      } else if (status === TokenStatus[TokenStatus.Redeemed]) {
+        return status;
+      }
+      return TokenStatus[TokenStatus.Expired];
+    } catch (err) {
+      throw err;
     }
-    else if (status === TokenStatus[TokenStatus.Redeemed]){
-      return status;
+    finally {
+      await this.redis.unwatch(token)
     }
-    return TokenStatus[TokenStatus.Expired]
   }
 }

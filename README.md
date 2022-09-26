@@ -73,7 +73,9 @@ Let's say we need 1 byte to store 1 NanoId char
  
 ## Points of Failure
 ```
-Token generation system, can be solved with replicas
+// todo : Optimistic locking via watch, exec // edge case when 2 requests are racing to redeem same token
+// check : does it matter if we re-redeem a redeemed token?
+If token generation system is single instance
 Single point of cache (scale to distributed cache)
 Keep generate and check/redeem in seperate micro services as they will have different b/w scaling requirements (or lambdas)
 cleanup crons
