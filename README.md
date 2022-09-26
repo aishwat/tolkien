@@ -9,6 +9,7 @@ Docker.
 ## Running the app
 
 ```bash
+# use app.module.ts for redis configs
 # install
 $ npm install
 # development
